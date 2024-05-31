@@ -22,20 +22,23 @@ void main()
 {
 	vec4 position = gl_Vertex;
 	float blockId = mc_Entity.x;
-	float maxStrength = 1.0 + rainStrength * 0.5;
 	if((blockId == 31.0 || blockId == 37.0 || blockId == 38.0) && gl_MultiTexCoord0.t < mc_midTexCoord.t)
 	{
-		float reset = cos(dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05)));
+		float maxStrength = 1.0 + rainStrength * 0.5;
+		float tmp = dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05));
+		float reset = cos(tmp);
 		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.x += sin(dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05))) * 0.25 * reset * maxStrength;
-		position.z += sin(dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05))) * 0.25 * reset * maxStrength;
+		position.x += sin(tmp) * 0.3 * reset * maxStrength;
+		position.z += sin(tmp) * 0.3 * reset * maxStrength;
 	}
-	else if((blockId == 18.0 || blockId == 106.0 || blockId == 161.0 || blockId == 175.0))
+	else if(blockId == 18.0 || blockId == 106.0 || blockId == 161.0 || blockId == 175.0)
 	{
-		float reset = cos(dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05)));
+		float maxStrength = 1.0 + rainStrength * 0.5;
+		float tmp = dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05));
+		float reset = cos(tmp);
 		reset = max( reset * reset, max(rainStrength, 0.1));
-		position.x += sin(dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05))) * 0.1 * reset * maxStrength;
-		position.z += sin(dot(vec4(frameTimeCounter,position), vec4(1.0,0.05,0.05,0.05))) * 0.1 * reset * maxStrength;
+		position.x += sin(tmp) * 0.15 * reset * maxStrength;
+		position.z += sin(tmp) * 0.15 * reset * maxStrength;
 	}
 	position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * position;
