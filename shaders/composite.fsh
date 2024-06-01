@@ -13,6 +13,7 @@ const bool shadowHardwareFiltering = true;
 uniform float far;
 uniform float frameTimeCounter;
 uniform vec3 sunPosition;
+uniform vec3 moonPosition;
 uniform vec3 cameraPosition;
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
@@ -21,6 +22,7 @@ uniform mat4 shadowProjection;
 uniform sampler2D gcolor;
 uniform sampler2D gnormal;
 uniform sampler2D depthtex0;
+uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
 uniform sampler2DShadow shadow;
 
@@ -32,6 +34,9 @@ varying vec3 cloudBase2;
 varying vec3 cloudLight1;
 varying vec3 cloudLight2;
 varying vec4 texcoord;
+varying float isNight;
+varying vec3 mySkyColor;
+varying vec3 mySunColor;
 
 vec3 normalDecode(vec2 enc) {
     vec4 nn = vec4(2.0 * enc - 1.0, 1.0, -1.0);
@@ -147,6 +152,25 @@ vec3 cloudRayMarching(vec3 startPoint, vec3 direction, vec3 bgColor, float maxDi
 	return bgColor * (1.0 - final.a) + final.rgb;
 }
 
+vec3 drawSky(vec3 color, vec4 positionInViewCoord, vec4 positionInWorldCoord) {
+    float dis = length(positionInWorldCoord.xyz) / far;
+    float disToSun = 1.0 - dot(normalize(positionInViewCoord.xyz), normalize(sunPosition));
+    float disToMoon = 1.0 - dot(normalize(positionInViewCoord.xyz), normalize(moonPosition));
+    vec3 drawSun = vec3(0);
+    if(disToSun<0.001 && dis>0.99999) {
+        drawSun = mySunColor * 2 * (1.0-isNight);
+    }
+    vec3 drawMoon = vec3(0);
+    if(disToMoon<0.001 && dis>0.99999) {
+        drawMoon = mySunColor * 2 * isNight;
+    }
+    float sunMixFactor = clamp(1.0 - disToSun, 0, 1) * (1.0-isNight);
+    vec3 finalColor = mix(mySkyColor, mySunColor, pow(sunMixFactor, 128));
+    float moonMixFactor = clamp(1.0 - disToMoon, 0, 1) * isNight;
+    finalColor = mix(finalColor, mySunColor, pow(moonMixFactor, 4));
+    return mix(color, finalColor, clamp(pow(dis, 3), 0, 1)) + drawSun + drawMoon;
+}
+
 void main() {
 	vec4 color = texture2D(gcolor, texcoord.st);
 	vec3 normal = normalDecode(texture2D(gnormal, texcoord.st).rg);
@@ -155,6 +179,13 @@ void main() {
 	viewPosition /= viewPosition.w;
 	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
 	float dist = length(worldPosition.xyz) / far;
+
+	float depth1 = texture2D(depthtex1, texcoord.st).x;
+    vec4 positionInNdcCoord1 = vec4(texcoord.st*2-1, depth1*2-1, 1);
+    vec4 positionInClipCoord1 = gbufferProjectionInverse * positionInNdcCoord1;
+    vec4 positionInViewCoord1 = vec4(positionInClipCoord1.xyz/positionInClipCoord1.w, 1.0);
+    vec4 positionInWorldCoord1 = gbufferModelViewInverse * positionInViewCoord1;
+	color.rgb = drawSky(color.rgb, positionInViewCoord1, positionInWorldCoord1);
 	
 	float shade = shadowMapping(worldPosition, dist, normal, color.a);
 	color.rgb *= 1.0 - shade * 0.5;

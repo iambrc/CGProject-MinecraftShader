@@ -3,6 +3,7 @@
 #define SHADOW_MAP_BIAS 0.85
 
 varying vec4 texcoord;
+varying vec4 lmcoord;
 
 void main() {
 	gl_Position = ftransform();
@@ -10,4 +11,5 @@ void main() {
 	float distortFactor = (1.0 - SHADOW_MAP_BIAS) + dist * SHADOW_MAP_BIAS;
 	gl_Position.xy /= distortFactor;
 	texcoord = gl_MultiTexCoord0;
+	lmcoord = gl_TextureMatrix[1] * gl_MultiTexCoord1;
 }

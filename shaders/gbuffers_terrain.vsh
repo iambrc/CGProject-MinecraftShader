@@ -2,7 +2,7 @@
 
 uniform float rainStrength;
 uniform float frameTimeCounter;
-//uniform sampler2D noisetex;
+uniform sampler2D noisetex;
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
