@@ -11,6 +11,7 @@ varying vec4 color;
 varying vec4 texcoord;
 varying vec4 lmcoord;
 varying vec2 normal;
+varying float glassmetal;
 
 vec2 normalEncode(vec3 n) {
     vec2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
@@ -40,6 +41,10 @@ void main()
 		position.x += sin(tmp) * 0.15 * reset * maxStrength;
 		position.z += sin(tmp) * 0.15 * reset * maxStrength;
 	}
+	if (blockId == 20.0 || blockId == 95.0)
+		glassmetal = 2.0 / 255.0;
+	else if (blockId == 41.0 || blockId == 42.0)
+		glassmetal = 3.0 / 255.0;
 	position = gl_ModelViewMatrix * position;
 	gl_Position = gl_ProjectionMatrix * position;
 	gl_FogFragCoord = length(position.xyz);
