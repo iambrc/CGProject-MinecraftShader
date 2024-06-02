@@ -162,12 +162,12 @@ vec3 drawSky(vec3 color, vec4 positionInViewCoord, vec4 positionInWorldCoord) {
     }
     vec3 drawMoon = vec3(0);
     if(disToMoon<0.001 && dis>0.99999) {
-        drawMoon = mySunColor * 2 * isNight;
+        drawMoon = mySunColor * 2 * isNight * 0.1;
     }
     float sunMixFactor = clamp(1.0 - disToSun, 0, 1) * (1.0-isNight);
     vec3 finalColor = mix(mySkyColor, mySunColor, pow(sunMixFactor, 128));
     float moonMixFactor = clamp(1.0 - disToMoon, 0, 1) * isNight;
-    finalColor = mix(finalColor, mySunColor, pow(moonMixFactor, 4));
+    finalColor = mix(finalColor, mySunColor, pow(moonMixFactor, 1024));
     return mix(color, finalColor, clamp(pow(dis, 3), 0, 1)) + drawSun + drawMoon;
 }
 
