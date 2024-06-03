@@ -20,6 +20,8 @@ void main()
 	float blockId = mc_Entity.x;
 	if(gl_Normal.y > -0.9 && (mc_Entity.x == 8 || mc_Entity.x == 9))
 		attr = 1.0 / 255.0;
+	else if (mc_Entity.x == 95)
+		attr = 2.0 / 255.0;
 	else
 		attr = 0.0;
 	gl_Position = gl_ProjectionMatrix * position;

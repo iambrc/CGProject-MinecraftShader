@@ -4,6 +4,8 @@
 
 const int RG16 = 0;
 const int RGB8 = 0;
+const int R8 = 0;
+const int colortex4Format = R8;
 const int colortex1Format = RGB8;
 const int gnormalFormat = RG16;
 const int shadowMapResolution = 2048;
@@ -25,6 +27,7 @@ uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
 uniform sampler2DShadow shadow;
+uniform sampler2D colortex4;
 
 varying float extShadow;
 varying vec3 lightPosition;
@@ -122,14 +125,14 @@ vec4 cloudLighting(vec4 sum, float density, float diff) {
 	return sum + color*(1.0-sum.a);
 }
 
-vec3 cloudRayMarching(vec3 startPoint, vec3 direction, vec3 bgColor, float maxDis) {
+vec3 cloudRayMarching(vec3 startPoint, vec3 direction, vec3 bgColor, float maxDis, float attr) {
 	if(direction.y <= 0.1)
 		return bgColor;
 	vec3 testPoint = startPoint;
 	float cloudMin = startPoint.y + CLOUD_MIN * (exp(-startPoint.y / CLOUD_MIN) + 0.001);
 	float d = (cloudMin - startPoint.y) / direction.y;
 	testPoint += direction * (d + 0.01);
-	if(distance(testPoint, startPoint) > maxDis)
+	if(distance(testPoint, startPoint) > maxDis && attr != 2.0)
 		return bgColor;
 	float cloudMax = cloudMin + (CLOUD_MAX - CLOUD_MIN);
 	direction *= 1.0 / direction.y;
@@ -179,21 +182,28 @@ void main() {
 	viewPosition /= viewPosition.w;
 	vec4 worldPosition = gbufferModelViewInverse * (viewPosition + vec4(normal * 0.05 * sqrt(abs(viewPosition.z)), 0.0));
 	float dist = length(worldPosition.xyz) / far;
+	
+	float shade = shadowMapping(worldPosition, dist, normal, color.a);
+	color.rgb *= 1.0 - shade * 0.5;
 
 	float depth1 = texture2D(depthtex1, texcoord.st).x;
     vec4 positionInNdcCoord1 = vec4(texcoord.st*2-1, depth1*2-1, 1);
     vec4 positionInClipCoord1 = gbufferProjectionInverse * positionInNdcCoord1;
     vec4 positionInViewCoord1 = vec4(positionInClipCoord1.xyz/positionInClipCoord1.w, 1.0);
     vec4 positionInWorldCoord1 = gbufferModelViewInverse * positionInViewCoord1;
-	color.rgb = drawSky(color.rgb, positionInViewCoord1, positionInWorldCoord1);
-	
-	float shade = shadowMapping(worldPosition, dist, normal, color.a);
-	color.rgb *= 1.0 - shade * 0.5;
+	vec3 skycolor = drawSky(color.rgb, positionInViewCoord1, positionInWorldCoord1);
 	
 	vec3 rayDir = normalize(gbufferModelViewInverse * viewPosition).xyz;
 	if(dist > 0.9999)
 		dist = 100.0;
-	color.rgb = cloudRayMarching(cameraPosition, rayDir, color.rgb, dist * far);
+	vec3 attrs =  texture2D(colortex4, texcoord.st).rgb;
+	float attr = attrs.r * 255.0;
+	vec3 cloudcolor = cloudRayMarching(cameraPosition, rayDir, skycolor, dist * far, attr);
+
+	if (attr == 2.0)
+		color.rgb = mix(color.rgb, cloudcolor, 0.3);
+	else
+		color.rgb = cloudcolor;
 	
 	float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
 	vec3 highlight = color.rgb * max(brightness - 0.25, 0.0);
