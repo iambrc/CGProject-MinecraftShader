@@ -15,6 +15,7 @@ const int noiseTextureResolution = 128;
 
 uniform float far;
 uniform int worldTime;
+uniform int isEyeInWater;
 uniform float frameTimeCounter;
 uniform vec3 sunPosition;
 uniform vec3 moonPosition;
@@ -204,6 +205,27 @@ vec3 drawWater(vec3 color, vec4 positionInWorldCoord, vec4 positionInViewCoord, 
 	return finalColor;
 }
 
+float getCaustics(vec4 positionInWorldCoord) {
+	positionInWorldCoord.xyz += cameraPosition;
+
+	float speed1 = float(worldTime) / (noiseTextureResolution * 15);
+	vec3 coord1 = positionInWorldCoord.xyz / noiseTextureResolution;
+	coord1.x *= 4;
+	coord1.x += speed1*2 + coord1.z;
+	coord1.z -= speed1;
+	float noise1 = texture2D(noisetex, coord1.xz).x;
+	noise1 = noise1*2 - 1.0;
+
+	float speed2 = float(worldTime) / (noiseTextureResolution * 15);
+	vec3 coord2 = positionInWorldCoord.xyz / noiseTextureResolution;
+	coord2.z *= 4;
+	coord2.z += speed2*2 + coord2.x;
+	coord2.x -= speed2;
+	float noise2 = texture2D(noisetex, coord2.xz).x;
+	noise2 = noise2*2 - 1.0;
+	return noise1 + noise2;
+}
+
 void main() {
 	vec4 color = texture2D(gcolor, texcoord.st);
 	vec3 normal = normalDecode(texture2D(gnormal, texcoord.st).rg);
@@ -233,7 +255,13 @@ void main() {
 	if (attr == 2.0)
 		color.rgb = mix(color.rgb, cloudcolor, 0.3);
 	else if (attr == 1.0)
-		color.rgb = drawWater(color.rgb, worldPosition, viewPosition, normal);
+	{
+		float caustics = getCaustics(positionInWorldCoord1);
+		vec3 watercolor = drawWater(color.rgb, worldPosition, viewPosition, normal);
+		color.rgb = (1.0 + caustics*0.25) * watercolor;
+		if (isEyeInWater == 1)
+			color.rgb = mix(color.rgb, cloudcolor, 0.2);
+	}
 	else
 		color.rgb = cloudcolor;
 

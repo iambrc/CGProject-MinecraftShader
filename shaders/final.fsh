@@ -4,6 +4,7 @@ const int R8 = 0;
 const int colortex4Format = R8;
 const int colortex5Format = R8;
 
+uniform int isEyeInWater;
 uniform float near;
 uniform float far;
 uniform float aspectRatio;
@@ -406,20 +407,20 @@ void main() {
 	float glassmetal = glassmetals.r * 255.0;
 
 	color = bloom(color, texcoord.st);
-	color = waterEffect(color, texcoord.st, viewPosition.xyz, attr);
+	if (isEyeInWater != 1)
+		color = waterEffect(color, texcoord.st, viewPosition.xyz, attr);
 	color = metalEffect(color, texcoord.st, viewPosition.xyz, glassmetal);
 	color = tonemapping(color);
-
+	
+	//color = motionBlur(color, texcoord.st, viewPosition);
 	vec3 hslColor = rgbToHsl(color);
 	hslColor = vibrance(hslColor, 0.75);
 	color = hslToRgb(hslColor);
-	//color = colorBalance(color, hslColor, vec3(0.0), vec3(0.0, 0.12, 0.2), vec3(-0.12, 0.0, 0.2), true);
 
 	color = vignette(color);
 
 	color = lensFlare(color, texcoord.st);
-
-	//color = motionBlur(color, texcoord.st, viewPosition);
+	color = colorBalance(color, hslColor, vec3(0.0), vec3(0.0, 0.12, 0.2), vec3(-0.12, 0.0, 0.2), true);
 
 	gl_FragColor = vec4(color, 1.0);
 }
