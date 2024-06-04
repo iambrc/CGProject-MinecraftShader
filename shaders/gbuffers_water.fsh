@@ -9,6 +9,8 @@ varying vec4 texcoord;
 varying vec4 lmcoord;
 varying vec2 normal;
 varying float attr;
+varying float blockId;
+
 /* DRAWBUFFERS:024 */
 
 void main() {

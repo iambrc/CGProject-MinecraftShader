@@ -11,8 +11,10 @@ const int gnormalFormat = RG16;
 const int shadowMapResolution = 2048;
 const float sunPathRotation = -25.0;
 const bool shadowHardwareFiltering = true;
+const int noiseTextureResolution = 128;
 
 uniform float far;
+uniform int worldTime;
 uniform float frameTimeCounter;
 uniform vec3 sunPosition;
 uniform vec3 moonPosition;
@@ -174,6 +176,34 @@ vec3 drawSky(vec3 color, vec4 positionInViewCoord, vec4 positionInWorldCoord) {
     return mix(color, finalColor, clamp(pow(dis, 3), 0, 1)) + drawSun + drawMoon;
 }
 
+float getWave(vec4 positionInWorldCoord) {
+	float speed1 = float(worldTime) / (noiseTextureResolution * 15);
+	vec3 coord1 = positionInWorldCoord.xyz / noiseTextureResolution;
+	coord1.x *= 3;
+	coord1.x += speed1;
+	coord1.z += speed1 * 0.2;
+	float noise1 = texture2D(noisetex, coord1.xz).x;
+	float speed2 = float(worldTime) / (noiseTextureResolution * 7);
+	vec3 coord2 = positionInWorldCoord.xyz / noiseTextureResolution;
+	coord2.x *= 0.5;
+	coord2.x -= speed2 * 0.15 + noise1 * 0.05;
+	coord2.z -= speed2 * 0.7 - noise1 * 0.05;
+	float noise2 = texture2D(noisetex, coord2.xz).x;
+	return noise2 * 0.6 + 0.4;
+}
+
+vec3 drawWater(vec3 color, vec4 positionInWorldCoord, vec4 positionInViewCoord, vec3 normal) {
+	positionInWorldCoord.xyz += cameraPosition;
+	float wave = getWave(positionInWorldCoord);
+	vec3 finalColor = mySkyColor;
+	finalColor *= wave;
+	float cosine = dot(normalize(positionInViewCoord.xyz), normalize(normal));
+	cosine = clamp(abs(cosine), 0, 1);
+	float factor = pow(1.0 - cosine, 4);
+	finalColor = mix(color, finalColor, factor);
+	return finalColor;
+}
+
 void main() {
 	vec4 color = texture2D(gcolor, texcoord.st);
 	vec3 normal = normalDecode(texture2D(gnormal, texcoord.st).rg);
@@ -202,8 +232,11 @@ void main() {
 
 	if (attr == 2.0)
 		color.rgb = mix(color.rgb, cloudcolor, 0.3);
+	else if (attr == 1.0)
+		color.rgb = drawWater(color.rgb, worldPosition, viewPosition, normal);
 	else
 		color.rgb = cloudcolor;
+
 	
 	float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
 	vec3 highlight = color.rgb * max(brightness - 0.25, 0.0);
